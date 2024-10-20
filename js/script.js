@@ -31,10 +31,9 @@ function RodaAnimacaoBau() {
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-//
 const canvas = document.getElementById('meuCanvas');
 const ctx = canvas.getContext('2d');
-var sizeWidth = 50 * window.innerWidth / 100,
+var sizeWidth = 100 * window.innerWidth / 100,
     sizeHeight = 100 * window.innerHeight / 100 || 766;
 
 //Configurando tamanho do canvas dinamicamente
@@ -50,64 +49,80 @@ const bauRect = bau.getBoundingClientRect(); // Pega a posição do baú na tela
 // Ajusta a posição do canvas para o sistema de coordenadas dele
 const canvasRect = canvas.getBoundingClientRect();
 const startX = bauRect.left - canvasRect.left + (bauRect.width / 2); // Meio do baú
-const startY = bauRect.top * 1.8 - canvasRect.top; // Parte superior do baú
+const startY = bauRect.top * 2 - canvasRect.top; // Parte superior do baú
 
-// Variáveis para a animação
-let x = startX; // Posição inicial no eixo x (meio do baú)
-let y = startY; // Posição inicial no eixo y (topo do baú)
-let gravidade = 0.5; // Gravidade
-let intervalo = 1000 / 60; // 60 FPS
-let bolas = [];
+// Variáveis globais
+const gravidade = 0.5; // Gravidade
+const intervalo = 1000 / 60; // 60 FPS
+let bolas = []; // Array que vai armazenar várias bolinhas
 
-let vx = 3; // Velocidade no eixo x
-let vy = -15; // Velocidade inicial no eixo y (para cima)
-
-function desenharBola() {
+// Função para desenhar todas as bolas
+function desenharBolas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa o canvas
-    ctx.beginPath();
-    ctx.arc(x, y, 10, 0, Math.PI * 2); // Desenha a bola (um círculo)
-    ctx.fillStyle = 'white';
-    ctx.fill();
-    ctx.closePath();
+    
+    bolas.forEach((bola) => {
+        ctx.beginPath();
+        ctx.arc(bola.x, bola.y, bola.raio, 0, Math.PI * 2); // Desenha cada bola
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.closePath();
+    });
 }
 
-function atualizarPosicao() {
-    // Atualiza as coordenadas da bola
-    x += vx;
-    y += vy;
-    vy += gravidade; // Aumenta a velocidade vertical com a gravidade (faz a bola cair)
+// Função para atualizar a posição de todas as bolas
+function atualizarPosicoes() {
+    bolas.forEach((bola) => {
+        bola.x += bola.vx;
+        bola.y += bola.vy;
+        bola.vy += gravidade; // Aplica gravidade
 
-    // Verifica se a bola atingiu o chão
-    if (y > startY) {
-        y = startY; // Impede que a bola vá abaixo do chão
-        vy = 0; // Zera a velocidade vertical (a bola para)
-        vx = 0; // Zera a velocidade horizontal
-    }
+        // Verifica se a bola atingiu o chão
+        if (bola.y > startY) {
+            bola.y = startY; // Impede que a bola vá abaixo do chão
+            bola.vy = 0; 
+            bola.vx = 0; 
+        }
+    });
 
-    desenharBola();
+    
+    desenharBolas();
 }
 
+// Função de animação
 function animar() {
-    atualizarPosicao();
+    atualizarPosicoes();
 
-    // Se a bola ainda não parou, continua a animação
-    if (vx !== 0 || vy !== 0) {
+    // Continua a animação enquanto as bolas estão se movendo
+    if (bolas.some(bola => bola.vx !== 0 || bola.vy !== 0)) {
         requestAnimationFrame(animar);
     }
 }
 
-// Inicia a animação ao clicar no botão
-function AnimacaoBolinha() {
-    animar();
+// Função para adicionar uma nova bola com posição e velocidade específicas
+function adicionarBola(xInicial, vxInicial) {
+    const raio = 10; // Tamanho da bola
+    const vyInicial = -15; // Velocidade inicial no eixo y (para cima)
+    
+    // Cria uma nova bola e adiciona ao array
+    const novaBola = { x: xInicial, y: startY, vx: vxInicial, vy: vyInicial, raio };
+    bolas.push(novaBola);
 }
 
-///////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
+// Inicia a animação ao clicar no botão, adiciona várias bolas com velocidades específicas
+function AnimacaoBolinha() {
+    const espacamento = 50; // Espaçamento entre as bolas
 
-//Dar Play em tudo
-
-function DarPlay(){
+    // Adiciona 4 bolas com as velocidades especificadas e em posições diferentes
+    adicionarBola(startX + espacamento, 3);   // Bola 1 com vx = 3
+    adicionarBola(startX + espacamento, 6);   // Bola 2 com vx = 6
+    adicionarBola(startX - espacamento, -3);  // Bola 3 com vx = -3
+    adicionarBola(startX - 2 * espacamento, -6);  // Bola 4 com vx = -6
     
+    animar(); // Inicia a animação
+}
+
+// Função para dar play em tudo
+function DarPlay() {
     RodaAnimacaoBau().then(() => {
         AnimacaoBolinha();
     });
