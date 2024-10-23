@@ -1,35 +1,9 @@
+//Variaveis
 let currentFrame = 0;
-let totalFrames = 11;
+let totalFramesBau = 11;
+let totalFramesParticula = 4; 
 let animationInterval;
-
-function RodaAnimacaoBau() {
-    return new Promise((resolve, rejeita) => {
-        // Verifica se já está em execução
-        if (animationInterval) return;
-
-        // Define intervalo para trocar imagens a cada 50ms (ajustável)
-        animationInterval = setInterval(() => {
-            // Atualiza o src da imagem
-            document.getElementById('bau').src = `img/sChest1/sChest1_${currentFrame}.png`;
-
-            // Avança para o próximo frame
-            currentFrame++;
-
-            // Quando atingir o total de frames, para a animação
-            if (currentFrame >= totalFrames) {
-                clearInterval(animationInterval);
-                animationInterval = null; // Reseta para poder rodar novamente
-                currentFrame = 0; // Reseta para a próxima execução
-                resolve();
-            }
-        }, 50); // Tempo de troca de imagens em milissegundos
-        
-    })
-    
-}
-
-///////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
+let trocaImagensConcluida = false;
 
 const canvas = document.getElementById('meuCanvas');
 const ctx = canvas.getContext('2d');
@@ -56,16 +30,74 @@ const gravidade = 0.5; // Gravidade
 const intervalo = 1000 / 60; // 60 FPS
 let bolas = []; // Array que vai armazenar várias bolinhas
 
+function RodaAnimacaoBau() {
+    return new Promise((resolve, rejeita) => {
+        // Verifica se já está em execução
+        if (animationInterval) return;
+
+        // Define intervalo para trocar imagens a cada 50ms (ajustável)
+        animationInterval = setInterval(() => {
+            // Atualiza o src da imagem
+            document.getElementById('bau').src = `img/sChest1/sChest1_${currentFrame}.png`;
+
+            // Avança para o próximo frame
+            currentFrame++;
+
+            // Quando atingir o total de frames, para a animação
+            if (currentFrame >= totalFramesBau) {
+                clearInterval(animationInterval);
+                animationInterval = null; // Reseta para poder rodar novamente
+                currentFrame = 0; // Reseta para a próxima execução
+                resolve();
+            }
+        }, 50); // Tempo de troca de imagens em milissegundos
+        
+    })
+    
+}
+
+// Função para rodar a animação da partícula
+function RodaAnimacaoParticula(bola) {
+    return new Promise((resolve, rejeita) => {
+        currentFrame = 0; // Reseta o frame inicial
+
+        // Verifica se já está em execução
+        if (animationInterval) return;
+
+        // Define intervalo para trocar imagens a cada 50ms
+        animationInterval = setInterval(() => {
+            // Atualiza a imagem da bolinha durante a animação de partícula
+            bola.imagem.src = `img/sItemSpawnBurstEf/sItemSpawnBurstEf_${currentFrame}.png`;
+
+            // Avança para o próximo frame
+            currentFrame++;
+
+            // Quando atingir o total de frames da partícula, para a animação
+            if (currentFrame >= totalFramesParticula) {
+                clearInterval(animationInterval);
+                animationInterval = null; // Reseta o intervalo para poder rodar novamente
+                currentFrame = 0; // Reseta para a próxima execução
+                resolve(); // Resolve a promise para continuar o fluxo
+            }
+        }, 50); // Tempo de troca de imagens em milissegundos
+    });
+}
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+
+
 // Função para desenhar todas as bolas
 function desenharBolas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa o canvas
     
     bolas.forEach((bola) => {
-        ctx.beginPath();
-        ctx.arc(bola.x, bola.y, bola.raio, 0, Math.PI * 2); // Desenha cada bola
-        ctx.fillStyle = 'white';
-        ctx.fill();
-        ctx.closePath();
+        // Desenha a bola (com a imagem em tamanho ajustado)
+        const larguraImagem = 30 * bola.escala; // Defina a largura desejada
+        const alturaImagem = 30 * bola.escala;// Defina a altura desejada
+
+        ctx.drawImage(bola.imagem, bola.x - larguraImagem / 2, bola.y - alturaImagem / 2, larguraImagem, alturaImagem);
     });
 }
 
@@ -79,14 +111,18 @@ function atualizarPosicoes() {
         // Verifica se a bola atingiu o chão
         if (bola.y > startY) {
             bola.y = startY; // Impede que a bola vá abaixo do chão
-            bola.vy = 0; 
-            bola.vx = 0; 
+            bola.vy = 0;
+            bola.vx = 0;
+            
+            // Verifica se a animação de partícula já não foi rodada
+            if (!bola.animacaoConcluida) {
+                bola.animacaoConcluida = true; // Marca como concluída
+                adicionaLog(bola); // Passa a bolinha para adicionarLog
+            }
         }
-    });
-
-    
-    desenharBolas();
-}
+        });
+        desenharBolas();
+    }
 
 // Função de animação
 function animar() {
@@ -102,9 +138,11 @@ function animar() {
 function adicionarBola(xInicial, vxInicial) {
     const raio = 10; // Tamanho da bola
     const vyInicial = -15; // Velocidade inicial no eixo y (para cima)
-    
+    const imagem = new Image(); // Adiciona uma nova imagem para cada bola
+    imagem.src = `img/sItemSpawnBurstEf/sItemSpawnBurstEf_0.png`; // Primeira imagem da partícula
+
     // Cria uma nova bola e adiciona ao array
-    const novaBola = { x: xInicial, y: startY, vx: vxInicial, vy: vyInicial, raio };
+    const novaBola = { x: xInicial, y: startY, vx: vxInicial, vy: vyInicial, raio, imagem, escala : 1, animacaoConcluida: false };
     bolas.push(novaBola);
 }
 
@@ -121,9 +159,19 @@ function AnimacaoBolinha() {
     animar(); // Inicia a animação
 }
 
+function adicionaLog(bola) {
+    // Troca a imagem pela do sBookDrop
+    bola.imagem.src = `img/sBookDrop/sBookDrop_0.png?${new Date().getTime()}`;
+
+    // Aumenta o tamanho (escala) da bolinha após trocar a imagem
+    bola.escala = 3; // Multiplica o tamanho por 2 (ajuste conforme necessário)
+
+}
+
 // Função para dar play em tudo
 function DarPlay() {
     RodaAnimacaoBau().then(() => {
         AnimacaoBolinha();
+        
     });
 }
